@@ -47,3 +47,14 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Python
+__pycache__/
+*.py[cod]
+.pythonlibs/
+.venv/
+.env
+
+# Temporary audio and Whisper caches
+uploads/*
+!uploads/.gitkeep
