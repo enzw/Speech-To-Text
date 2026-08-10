@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Whisper STT Console"
+description = "A lightweight web console for testing the Whisper Speech-to-Text API with audio uploads, transcription results, health status, and integration guidance for Wemos D1 Mini clients."
+version = "1.0.0"
+id = "artifacts/whisper-stt-console"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25791
+
+[services.development]
+run = "pnpm --filter @workspace/whisper-stt-console run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/whisper-stt-console", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/whisper-stt-console/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25791"
+BASE_PATH = "/"

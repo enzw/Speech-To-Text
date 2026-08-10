@@ -10,7 +10,33 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: transcription
+    description: Speech-to-text operations
 paths:
+  /:
+    get:
+      operationId: getServiceStatus
+      tags: [health]
+      summary: Get service status
+      responses:
+        "200":
+          description: Service online
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceStatus"
+  /health:
+    get:
+      operationId: getHealth
+      tags: [health]
+      summary: Get health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
   /healthz:
     get:
       operationId: healthCheck
@@ -24,8 +50,66 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /transcribe:
+    post:
+      operationId: transcribeAudio
+      tags: [transcription]
+      summary: Transcribe an audio file
+      parameters:
+        - name: X-API-Key
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/TranscriptionInput"
+      responses:
+        "200":
+          description: Transcription completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "415":
+          description: Unsupported audio format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
+    ServiceStatus:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+      required:
+        - status
+        - service
     HealthStatus:
       type: object
       properties:
@@ -33,4 +117,32 @@ components:
           type: string
       required:
         - status
+    TranscriptionInput:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+      required:
+        - file
+    TranscriptionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        text:
+          type: string
+      required:
+        - success
+        - text
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+      required:
+        - success
+        - error
 

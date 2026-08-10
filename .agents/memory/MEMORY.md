@@ -1,0 +1,1 @@
+- [Python multipart codegen](python-multipart-codegen.md) — generated File/Blob validators require DOM types in the Zod library compiler options.
