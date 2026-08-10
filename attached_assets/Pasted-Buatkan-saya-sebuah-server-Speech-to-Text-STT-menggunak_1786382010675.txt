@@ -1,0 +1,306 @@
+Buatkan saya sebuah **server Speech-to-Text (STT) menggunakan Whisper** yang akan digunakan sebagai backend untuk perangkat IoT berbasis **Wemos D1 Mini (ESP8266)**.
+
+### Tujuan sistem
+
+Alur sistem yang saya inginkan:
+
+**Wemos D1 Mini + microphone → WiFi → HTTP POST → Server Whisper → hasil transkripsi teks → Wemos**
+
+Wemos tidak menjalankan Whisper secara lokal. Semua proses speech-to-text dilakukan di server.
+
+### Requirements utama
+
+Gunakan:
+
+* **Python 3**
+* **FastAPI** untuk REST API
+* **Whisper** untuk speech-to-text
+* **FFmpeg** untuk decoding audio
+* Server harus bisa dijalankan di **Replit**
+* API harus sederhana dan ringan agar mudah dipanggil oleh ESP8266
+
+### Endpoint
+
+Buat endpoint:
+
+`POST /transcribe`
+
+Endpoint menerima file audio melalui `multipart/form-data`.
+
+Contoh request:
+
+```http
+POST /transcribe
+Content-Type: multipart/form-data
+file: audio.wav
+```
+
+Response JSON:
+
+```json
+{
+  "success": true,
+  "text": "halo bagaimana kabarmu"
+}
+```
+
+Jika terjadi error:
+
+```json
+{
+  "success": false,
+  "error": "deskripsi error"
+}
+```
+
+### Format audio
+
+Server harus mendukung minimal:
+
+* WAV
+* MP3
+* M4A
+* OGG
+* WebM
+
+Karena client saya adalah ESP8266, prioritaskan **WAV PCM** sebagai format utama.
+
+Server harus dapat menangani audio:
+
+* Mono
+* 16-bit PCM
+* Sample rate 16000 Hz
+
+Jika memungkinkan, lakukan preprocessing/conversion menggunakan FFmpeg sebelum dikirim ke Whisper agar audio selalu menjadi:
+
+```text
+mono
+16000 Hz
+16-bit PCM WAV
+```
+
+### Whisper
+
+Gunakan Whisper dengan model yang ringan agar server Replit tidak terlalu berat.
+
+Prioritaskan:
+
+```text
+tiny
+```
+
+atau:
+
+```text
+base
+```
+
+Buat model dapat dikonfigurasi melalui environment variable:
+
+```env
+WHISPER_MODEL=tiny
+```
+
+Jangan load model setiap kali endpoint dipanggil.
+
+Model Whisper harus **diload sekali ketika server startup**, kemudian digunakan untuk request berikutnya.
+
+### Bahasa
+
+Prioritaskan Bahasa Indonesia.
+
+Gunakan konfigurasi Whisper yang sesuai, misalnya:
+
+```python
+language="id"
+```
+
+Namun tetap buat environment variable:
+
+```env
+WHISPER_LANGUAGE=id
+```
+
+Jika language tidak diisi, Whisper boleh melakukan language detection otomatis.
+
+### Keamanan
+
+Tambahkan API key sederhana.
+
+Environment variable:
+
+```env
+API_KEY=your-secret-key
+```
+
+Client harus mengirim:
+
+```http
+X-API-Key: your-secret-key
+```
+
+Jika API key salah, return:
+
+```http
+401 Unauthorized
+```
+
+### File handling
+
+Jangan menyimpan file audio secara permanen.
+
+Flow:
+
+1. Terima upload
+2. Simpan sementara
+3. Convert/preprocess
+4. Transcribe menggunakan Whisper
+5. Hapus file temporary
+6. Return hasil JSON
+
+Pastikan file temporary tetap dihapus walaupun terjadi error.
+
+Tambahkan batas ukuran file, misalnya maksimal **10 MB**.
+
+### CORS
+
+Aktifkan CORS agar API mudah digunakan dari berbagai client.
+
+### Health check
+
+Buat endpoint:
+
+`GET /`
+
+Response:
+
+```json
+{
+  "status": "online",
+  "service": "Whisper STT Server"
+}
+```
+
+Buat juga:
+
+`GET /health`
+
+Response:
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+### Struktur project
+
+Buat struktur yang rapi seperti:
+
+```text
+whisper-stt/
+├── main.py
+├── requirements.txt
+├── .env.example
+├── README.md
+└── uploads/
+```
+
+Jangan commit `.env`.
+
+### Replit
+
+Buat project agar langsung bisa dijalankan di Replit.
+
+Server harus listen pada:
+
+```text
+0.0.0.0
+```
+
+dan port dari environment variable:
+
+```python
+PORT
+```
+
+Gunakan:
+
+```python
+uvicorn main:app --host 0.0.0.0 --port $PORT
+```
+
+Sesuaikan konfigurasi Replit jika diperlukan.
+
+### Logging
+
+Tambahkan logging sederhana seperti:
+
+```text
+[INFO] Server started
+[INFO] Whisper model loaded
+[INFO] Audio received
+[INFO] Transcribing...
+[INFO] Transcription completed
+```
+
+Jangan log API key.
+
+### Error handling
+
+Tangani error untuk:
+
+* file tidak dikirim
+* format audio tidak valid
+* file terlalu besar
+* FFmpeg gagal
+* Whisper gagal
+* API key salah
+* server error
+
+Response harus selalu JSON yang jelas.
+
+### Testing
+
+Buat script/test sederhana untuk menguji:
+
+1. `GET /`
+2. `GET /health`
+3. `POST /transcribe`
+
+Sediakan contoh CURL:
+
+```bash
+curl -X POST "http://localhost:8000/transcribe" \
+  -H "X-API-Key: your-secret-key" \
+  -F "file=@audio.wav"
+```
+
+### README
+
+Buat README yang menjelaskan:
+
+* Cara menjalankan server
+* Cara install dependency
+* Cara konfigurasi environment variable
+* Cara menjalankan di Replit
+* Cara mendapatkan URL API
+* Cara melakukan request dari Wemos D1 Mini
+* Contoh request menggunakan curl
+* Contoh response
+* Format audio yang direkomendasikan
+
+### Penting
+
+Jangan membuat frontend/dashboard yang tidak diperlukan.
+
+Fokus pada **REST API STT yang dapat dipanggil oleh Wemos D1 Mini**.
+
+Buat seluruh project sampai bisa langsung dijalankan. Setelah selesai, tampilkan:
+
+1. Struktur file
+2. Cara menjalankan server
+3. Environment variables yang diperlukan
+4. URL endpoint
+5. Contoh request dari ESP8266
+6. Cara mengetes API
