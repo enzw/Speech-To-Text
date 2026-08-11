@@ -60,7 +60,7 @@ def _settings() -> dict[str, str | None]:
     return {
         "api_key": os.getenv("API_KEY"),
         "model_name": os.getenv("WHISPER_MODEL", "tiny"),
-        "language": os.getenv("WHISPER_LANGUAGE") or None,
+        "language": os.getenv("WHISPER_LANGUAGE", "id"),
     }
 
 
