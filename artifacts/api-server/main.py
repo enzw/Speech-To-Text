@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
+import imageio_ffmpeg
 import whisper
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Header, Request, UploadFile
@@ -44,6 +45,15 @@ logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
     format="[%(levelname)s] %(message)s",
 )
+
+try:
+    FFMPEG_EXECUTABLE = imageio_ffmpeg.get_ffmpeg_exe()
+    ffmpeg_directory = str(Path(FFMPEG_EXECUTABLE).parent)
+    os.environ["PATH"] = os.pathsep.join(
+        [ffmpeg_directory, os.environ.get("PATH", "")]
+    )
+except Exception:
+    FFMPEG_EXECUTABLE = "ffmpeg"
 
 
 def _settings() -> dict[str, str | None]:
@@ -82,7 +92,7 @@ async def _write_upload(upload: UploadFile, destination: Path) -> int:
 
 def _normalize_audio(source: Path, destination: Path) -> None:
     command = [
-        "ffmpeg",
+        FFMPEG_EXECUTABLE,
         "-hide_banner",
         "-loglevel",
         "error",

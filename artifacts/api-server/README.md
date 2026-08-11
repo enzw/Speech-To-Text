@@ -17,7 +17,9 @@ lain. Whisper dijalankan di server, bukan di mikrokontroler.
 
 ## Menjalankan secara lokal
 
-Pastikan Python 3.11 atau lebih baru dan FFmpeg tersedia.
+Pastikan Python 3.11 atau lebih baru. FFmpeg sudah dibundel melalui dependency
+`imageio-ffmpeg`, jadi instalasi `apt-get` tidak diperlukan pada Render Native
+Runtime.
 
 ```bash
 uv sync
@@ -34,6 +36,10 @@ Jika dependency dipasang menggunakan pip:
 ```bash
 pip install -r requirements.txt
 ```
+
+`imageio-ffmpeg` menyediakan executable FFmpeg untuk preprocessing audio dan
+Whisper. Ini cocok untuk environment seperti Render yang filesystem
+sistemnya read-only saat proses build.
 
 ## Environment variables
 
