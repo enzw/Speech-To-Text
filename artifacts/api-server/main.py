@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import imageio_ffmpeg
-import whisper
+from faster_whisper import WhisperModel
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Header, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
@@ -140,7 +140,13 @@ async def lifespan(app: FastAPI):
     logger.info("Server started")
     logger.info("Loading Whisper model: %s", settings["model_name"])
     try:
-        model = whisper.load_model(str(settings["model_name"]))
+        model = WhisperModel(
+            str(settings["model_name"]),
+            device="cpu",
+            compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
+            cpu_threads=int(os.getenv("WHISPER_CPU_THREADS", "2")),
+            num_workers=1,
+        )
     except Exception:
         logger.exception("Whisper model failed to load")
         raise
@@ -234,15 +240,15 @@ async def transcribe(
 
             logger.info("Transcribing...")
             async with app.state.transcription_lock:
-                result: dict[str, Any] = await asyncio.to_thread(
+                segments, _info = await asyncio.to_thread(
                     app.state.whisper_model.transcribe,
                     str(normalized_path),
                     language=app.state.language,
                     task="transcribe",
-                    fp16=False,
-                    verbose=False,
+                    beam_size=1,
+                    vad_filter=True,
                 )
-            text = str(result.get("text", "")).strip()
+            text = " ".join(segment.text.strip() for segment in segments).strip()
             logger.info("Transcription completed")
             return JSONResponse(content={"success": True, "text": text})
     except ValueError as exc:
